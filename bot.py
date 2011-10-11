@@ -28,8 +28,8 @@ def iqIncoming(con,iq): #iq запросы которые получаем
         print 'hm...is a bug'
         sys.exit()
 
-    if iqInbox.getCDATA() == 'SMS отправлено': #не работает, нужна поддержка русских символов, либо нарезать сообщение и сравнить только с SMS
-        botRun[btId].send(xmpp.Message(messageClientFromSms,messageBody, 'chat'))
+    if iqInbox.getCDATA()[:3] == 'SMS':
+        botRun[btId].send(xmpp.Message(messageClientFromSms,iqInbox.getCDATA(), 'chat'))
 
     print '\nIq = ',iqInbox.getCDATA(), ':', IqToNode #выводит возможный текст из iq запросов
 
@@ -37,12 +37,20 @@ def messageIncoming(con, msg): #сообщения, передаются дан�
     global botRun
     global messageClientFromSms
     global config
+    admins = adminAcc()
 
     messageFrom = msg.getFrom()
     messageToNode = msg.getTo().getNode()
     messageBody = msg.getBody()
+    #mess = msg.getJid()
 
-    print 'Message =',messageFrom, ':', messageBody
+    print 'Message =', messageFrom, ':', messageBody
+
+    #if admins[0] == msg.getFrom():
+    #    print 'lelellel'
+    i=1
+    #while i <= len(admins):
+    #    if
 
     if messageToNode == 'xmppsms0':
         btId = 0
@@ -51,7 +59,7 @@ def messageIncoming(con, msg): #сообщения, передаются дан�
     else:
         print 'hm...is a bug'
         sys.exit()
-
+#надо писать отдельную функцию тк может будут запросы одновременно с двух аккаунтов
     if messageBody == '_off': #все нормально, посылает чатики
         botRun[btId].send(xmpp.Message(msg.getFrom(),'гудбай америка оооуууооо', 'chat'))
         botRun[0].online = 0
@@ -68,9 +76,14 @@ def messageIncoming(con, msg): #сообщения, передаются дан�
     if messageFrom == 'mrim.jabber.ru': #ответы все к клиенту, которые придут от этого адреса
         botRun[btId].send(xmpp.Message(messageClientFromSms,messageBody, 'chat'))
 
+def requestMessage(numClient,mesBody,mesFrom): #все все что идет из сообщений отсеянных, сюда на обработку
+    pass
+
 def checkSending(): #проверяет дошло ли смс, по ответному iq, которое уповестит что не дошло
-	#либо сделать функцию как обработчик сообщений iq c mrim.mail.ru
-	#так же можно и с сообщениями, сделать отдельный обработчик который будет работать только с запросами mrim.mail.ru
+    #либо сделать функцию как обработчик сообщений iq c mrim.mail.ru
+    #так же можно и с сообщениями, сделать отдельный обработчик который будет работать только с запросами mrim.mail.ru
+    #нет, с сообщениями не надо, с сообщениями надо обработчик не от маила, а от юзеров которые будут управлять ботом
+    #так же можно брать из конфига
     pass
 
 def smsSend(number,smsText,translit): #функция отсыла смс, передается номер, текст, транслит
@@ -186,14 +199,22 @@ def configLoad(numAccount): #загружаются параметры из ко
     config = ConfigParser.ConfigParser()
     config.read('config')
 
-    configAccounts = ['account0','account1']
-
-    login = config.get(configAccounts[numAccount], 'login')
-    password = config.get(configAccounts[numAccount], 'password')
-    resource = config.get(configAccounts[numAccount], 'resource')
+    login = config.get('account' + str(numAccount), 'login')
+    password = config.get('account' + str(numAccount), 'password')
+    resource = config.get('account' + str(numAccount), 'resource')
     number = config.get('mobile', 'number')
 
     return {'login':login,'password':password, 'resource':resource, 'numberMobile':number}
+
+def adminAcc(): #собирает админские аккаунты
+    import ConfigParser
+    config = ConfigParser.ConfigParser()
+    config.read('config')
+    account = []
+    i=0
+    #while i<=0: #нужно както сделать на неопределнное количество акккаунтов
+    account.append(config.get('admin', 'user' + str(i)))
+    return [account]
 
 ####основная функция логина аккаунтов
 numacc = 0
