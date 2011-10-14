@@ -207,7 +207,7 @@ def configLoad(whatPars,numAccount): #загружаются параметры 
         account.append(config.get('admin', 'user'))
         return (account)
 
-####основная функция логина аккаунтов
+####основная функция подключения
 numacc = 0
 botRun = []
 
