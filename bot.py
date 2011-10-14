@@ -12,7 +12,6 @@
 import xmpp,sys
 
 iqInbox = ''
-messageClientFromSms = ''
 
 def iqIncoming(con,iq): #iq запросы которые получаем
     global iqInbox
@@ -35,55 +34,51 @@ def iqIncoming(con,iq): #iq запросы которые получаем
 
 def messageIncoming(con, msg): #сообщения, передаются данные сообщения, содержат все, отправлять лучше в транслите, огромное количество символов 120работает
     global botRun
-    global messageClientFromSms
-    global config
-    admins = adminAcc()
 
     messageFrom = msg.getFrom()
     messageToNode = msg.getTo().getNode()
     messageBody = msg.getBody()
-    #mess = msg.getJid()
 
     print 'Message =', messageFrom, ':', messageBody
 
-    #if admins[0] == msg.getFrom():
-    #    print 'lelellel'
-    i=1
-    #while i <= len(admins):
-    #    if
-
-    if messageToNode == 'xmppsms0':
+    if messageToNode == 'xmppsms0': #кому пришло, из ботов клиентов запущенных
         btId = 0
     elif messageToNode == 'xmppsms1':
         btId = 1
     else:
-        print 'hm...is a bug'
+        print 'hm...it is a bug'
         sys.exit()
-#надо писать отдельную функцию тк может будут запросы одновременно с двух аккаунтов
-    if messageBody == '_off': #все нормально, посылает чатики
+
+    stFnd = str(msg.getFrom()).find('/') #-1 - знач не нашла
+    if str(msg.getFrom())[:stFnd] == configLoad(1,0)[0]: #функция проверки от кого сообщение, именно жид без ресурса
+        requestMessage(btId,messageBody,messageFrom)
+
+    #if messageFrom == 'mrim.jabber.ru': #ответы все к клиенту, которые придут от этого адреса, в такой конфигурации не работает
+    #    botRun[btId].send(xmpp.Message(messageClientFromSms,messageBody, 'chat'))
+
+def requestMessage(numClient,mesBody,mesFrom): #все все что идет из сообщений отсеянных, сюда на обработку, и отвечает есессно обратно, либо работает с смс
+    global botRun #запущенные боты, номер передан при входе в функцию
+
+    #print '0', mesBody, '1', mesFrom
+    if mesBody == '_off': #все нормально, посылает чатики
         botRun[btId].send(xmpp.Message(msg.getFrom(),'гудбай америка оооуууооо', 'chat'))
         botRun[0].online = 0
         botRun[1].online = 0
         print 'disconnect'
-    if messageBody == '_sms': #шлем смс с тестом
-        messageClientFromSms = messageFrom
+    elif mesBody == '_sms': #шлем смс с тестом
         smsSend(config['numberMobile'],'testing',1) #120символов, транслит - ok
-        botRun[btId].send(xmpp.Message(messageFrom,'посмотрим, не обещаю', 'chat'))
-    if messageBody == '_weather': #шлем смс с погодой уже
-        messageClientFromSms = messageFrom
+        botRun[numClient].send(xmpp.Message(mesFrom,'посмотрим, не обещаю', 'chat'))
+    elif mesBody == '_weather': #шлем смс с погодой уже
         smsSend(config['numberMobile'],weather(0),0)
-        botRun[btId].send(xmpp.Message(messageFrom,'состояние погоды отправлено - 0', 'chat'))
-    if messageFrom == 'mrim.jabber.ru': #ответы все к клиенту, которые придут от этого адреса
-        botRun[btId].send(xmpp.Message(messageClientFromSms,messageBody, 'chat'))
-
-def requestMessage(numClient,mesBody,mesFrom): #все все что идет из сообщений отсеянных, сюда на обработку
-    pass
+        botRun[numClient].send(xmpp.Message(mesFrom,'состояние погоды отправлено - 0', 'chat'))
+    else:
+        botRun[numClient].send(xmpp.Message(mesFrom,'command unknow', 'chat'))
 
 def checkSending(): #проверяет дошло ли смс, по ответному iq, которое уповестит что не дошло
     #либо сделать функцию как обработчик сообщений iq c mrim.mail.ru
     #так же можно и с сообщениями, сделать отдельный обработчик который будет работать только с запросами mrim.mail.ru
-    #нет, с сообщениями не надо, с сообщениями надо обработчик не от маила, а от юзеров которые будут управлять ботом
-    #так же можно брать из конфига
+    #судьба функции не известна...
+    #ее можно встроить в функцию работы с mrim.mail.ru
     pass
 
 def smsSend(number,smsText,translit): #функция отсыла смс, передается номер, текст, транслит
@@ -194,34 +189,30 @@ def weather(tod): #парсер погоды, передается время с
     print 'weather = ', weatherAll
     return weatherAll
 
-def configLoad(numAccount): #загружаются параметры из конфига, передается номер аккаунта, который парсить
+def configLoad(whatPars,numAccount): #загружаются параметры из конфига, передается номер аккаунта, который парсить, что парсить 0 - акки, 1 - админские акки
+    #объединим с админскими, меньше перегружать память
     import ConfigParser
     config = ConfigParser.ConfigParser()
     config.read('config')
-
-    login = config.get('account' + str(numAccount), 'login')
-    password = config.get('account' + str(numAccount), 'password')
-    resource = config.get('account' + str(numAccount), 'resource')
-    number = config.get('mobile', 'number')
-
-    return {'login':login,'password':password, 'resource':resource, 'numberMobile':number}
-
-def adminAcc(): #собирает админские аккаунты
-    import ConfigParser
-    config = ConfigParser.ConfigParser()
-    config.read('config')
-    account = []
-    i=0
-    #while i<=0: #нужно както сделать на неопределнное количество акккаунтов
-    account.append(config.get('admin', 'user' + str(i)))
-    return [account]
+    if whatPars == 0:
+        login = config.get('account' + str(numAccount), 'login')
+        password = config.get('account' + str(numAccount), 'password')
+        resource = config.get('account' + str(numAccount), 'resource')
+        number = config.get('mobile', 'number')
+        return {'login':login,'password':password, 'resource':resource, 'numberMobile':number}
+    elif whatPars == 1:
+        account = []
+        i=0
+        #while i<=0: #нужно както сделать на неопределнное количество акккаунтов
+        account.append(config.get('admin', 'user' + str(i)))
+        return (account)
 
 ####основная функция логина аккаунтов
 numacc = 0
 botRun = []
 
 while numacc <= 1: #цикл логина двух аккаунтов
-    config = configLoad(numacc)
+    config = configLoad(0,numacc)
     jid = xmpp.JID(config['login'])
     bot = xmpp.Client(jid.getDomain(), debug=[])
 
