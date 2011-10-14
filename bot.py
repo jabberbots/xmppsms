@@ -207,6 +207,9 @@ def configLoad(whatPars,numAccount): #загружаются параметры 
         account.append(config.get('admin', 'user'))
         return (account)
 
+def pluginLoad():
+    pass
+
 ####основная функция подключения
 numacc = 0
 botRun = []
