@@ -61,7 +61,7 @@ def requestMessage(numClient,mesBody,mesFrom): #все все что идет и
 
     #print '0', mesBody, '1', mesFrom
     if mesBody == '_off': #все нормально, посылает чатики
-        botRun[btId].send(xmpp.Message(msg.getFrom(),'гудбай америка оооуууооо', 'chat'))
+        botRun[numClient].send(xmpp.Message(mesFrom,'гудбай америка оооуууооо', 'chat'))
         botRun[0].online = 0
         botRun[1].online = 0
         print 'disconnect'
@@ -202,9 +202,9 @@ def configLoad(whatPars,numAccount): #загружаются параметры 
         return {'login':login,'password':password, 'resource':resource, 'numberMobile':number}
     elif whatPars == 1:
         account = []
-        i=0
+        #i=0
         #while i<=0: #нужно както сделать на неопределнное количество акккаунтов
-        account.append(config.get('admin', 'user' + str(i)))
+        account.append(config.get('admin', 'user'))
         return (account)
 
 ####основная функция логина аккаунтов
