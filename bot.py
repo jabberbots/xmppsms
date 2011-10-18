@@ -58,7 +58,7 @@ def messageIncoming(con, msg): #сообщения, передаются дан�
 
 def requestMessage(numClient,mesBody,mesFrom): #все все что идет из сообщений отсеянных, сюда на обработку, и отвечает есессно обратно, либо работает с смс
     global botRun #запущенные боты, номер передан при входе в функцию
-
+    plug = pluginLoad()
     #print '0', mesBody, '1', mesFrom
     if mesBody == '_off': #все нормально, посылает чатики
         botRun[numClient].send(xmpp.Message(mesFrom,'гудбай америка оооуууооо', 'chat'))
@@ -71,6 +71,8 @@ def requestMessage(numClient,mesBody,mesFrom): #все все что идет и
     elif mesBody == '_weather': #шлем смс с погодой уже
         smsSend(config['numberMobile'],weather(0),0)
         botRun[numClient].send(xmpp.Message(mesFrom,'состояние погоды отправлено - 0', 'chat'))
+    elif mesBody in plug['commands']:
+        pluginRun(mesBody,numClient,mesBody) #первый параметр должен быть чистая команда, вырезанная ранее из сообщения, будет модифицированно в дальнейшем
     else:
         botRun[numClient].send(xmpp.Message(mesFrom,'command unknow', 'chat'))
 
@@ -194,21 +196,40 @@ def configLoad(whatPars,numAccount): #загружаются параметры 
     import ConfigParser
     config = ConfigParser.ConfigParser()
     config.read('config')
-    if whatPars == 0:
+    if whatPars == 0: #аккаунты клиентов-ботов
         login = config.get('account' + str(numAccount), 'login')
         password = config.get('account' + str(numAccount), 'password')
         resource = config.get('account' + str(numAccount), 'resource')
         number = config.get('mobile', 'number')
         return {'login':login,'password':password, 'resource':resource, 'numberMobile':number}
-    elif whatPars == 1:
+    elif whatPars == 1: #админские аккаунт(ы)
         account = []
         #i=0
         #while i<=0: #нужно както сделать на неопределнное количество акккаунтов
         account.append(config.get('admin', 'user'))
         return (account)
+    #elif whatPars == 2:
 
-def pluginLoad():
-    pass
+def pluginLoad(): #загрузка плагинов
+    import os
+    commands = []
+    public_commands = []
+    for fname in os.listdir('plugins/'): #Перебираем все файлы из папки plugins
+        if fname.endswith('.py'): #Если файл заканчивается на '.py'
+            plugin_name = fname[:-3]  #Обрезаем последние 3 буквы
+            if plugin_name != '__init__': #Если имя файла не '__init__'
+                plugins=__import__('plugins.'+plugin_name) #Загружаем плагин в переменную
+                #plugin = getattr(plugins,plugin_name) #Достаем плагин с переменной
+                #if plugin.init():  #Если плагин админский
+                #    commands.append(plugin_name)
+                #else:
+                commands.append(plugin_name)
+    #Возвращаем ассоциативный словарь
+    return {'plugins':plugins,'commands':commands}
+
+def pluginRun(command,botId,mes):
+    plugin = getattr(pluginLoad()['plugins'],command)
+    plugin.run(botId,mes)
 
 ####основная функция подключения
 numacc = 0
